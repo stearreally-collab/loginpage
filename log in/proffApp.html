@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Professional Student App</title>
+
+<!-- CHART LIBRARY -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root{
+    --bg:#f4f6f9;
+    --card:#ffffff;
+    --text:#222;
+    --primary:#007bff;
+}
+
+body.dark{
+    --bg:#1e1e2f;
+    --card:#2a2a3d;
+    --text:#fff;
+}
+
+body{
+    margin:0;
+    font-family:Arial;
+    background:var(--bg);
+    color:var(--text);
+    transition:0.3s;
+}
+
+.container{
+    max-width:550px;
+    margin:auto;
+    padding:15px;
+}
+
+.card{
+    background:var(--card);
+    padding:15px;
+    margin:10px 0;
+    border-radius:10px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+input,button{
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+
+button{
+    background:var(--primary);
+    color:white;
+    border:none;
+    cursor:pointer;
+}
+
+button:hover{ opacity:0.9; }
+
+.hidden{ display:none; }
+
+.topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.toast{
+    position:fixed;
+    bottom:20px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#333;
+    color:#fff;
+    padding:10px 20px;
+    border-radius:6px;
+    display:none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- LOGIN -->
+<div id="login">
+<h2>Login</h2>
+<input id="email" placeholder="Email">
+<input id="pass" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+<button onclick="show('register')">Create Account</button>
+</div>
+
+<!-- REGISTER -->
+<div id="register" class="hidden">
+<h2>Register</h2>
+<input id="ruser" placeholder="Username">
+<input id="remail" placeholder="Email">
+<input id="rpass" type="password" placeholder="Password">
+<input id="rconfirm" type="password" placeholder="Confirm Password">
+<button onclick="register()">Register</button>
+<button onclick="show('login')">Back</button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dash" class="hidden">
+
+<div class="topbar">
+<h2>Dashboard</h2>
+<button onclick="toggleDark()">🌙</button>
+</div>
+
+<p id="welcome"></p>
+
+<div class="card">
+<canvas id="chart"></canvas>
+</div>
+
+<button onclick="show('students')">Students</button>
+<button onclick="logout()">Logout</button>
+</div>
+
+<!-- STUDENTS -->
+<div id="students" class="hidden">
+<h2>Students</h2>
+
+<input id="sname" placeholder="Name">
+<input id="semail" placeholder="Email">
+<input id="scourse" placeholder="Course">
+
+<button onclick="addStudent()">Save</button>
+
+<input id="search" placeholder="Search...">
+
+<div id="list"></div>
+
+<button onclick="show('dash')">Back</button>
+</div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+// ===== STATE =====
+let currentUser = null;
+
+// ===== NAV =====
+function show(id){
+["login","register","dash","students"]
+.forEach(x=>document.getElementById(x).classList.add("hidden"));
+
+document.getElementById(id).classList.remove("hidden");
+}
+
+// ===== TOAST =====
+function toast(msg){
+let t = document.getElementById("toast");
+t.innerText = msg;
+t.style.display = "block";
+setTimeout(()=>t.style.display="none",2000);
+}
+
+// ===== HASH =====
+async function hash(text){
+let enc = new TextEncoder().encode(text);
+let buf = await crypto.subtle.digest("SHA-256", enc);
+return [...new Uint8Array(buf)]
+.map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+
+// ===== REGISTER =====
+async function register(){
+let u=ruser.value,e=remail.value,p=rpass.value,c=rconfirm.value;
+
+if(!u||!e||!p) return toast("Fill all fields");
+if(p!==c) return toast("Password mismatch");
+
+let users = JSON.parse(localStorage.getItem("users")||"[]");
+
+users.push({
+user:u,
+email:e,
+pass: await hash(p)
+});
+
+localStorage.setItem("users",JSON.stringify(users));
+toast("Registered!");
+show("login");
+}
+
+// ===== LOGIN =====
+async function login(){
+let users = JSON.parse(localStorage.getItem("users")||"[]");
+let user = users.find(u=>u.email===email.value);
+
+if(!user) return toast("User not found");
+
+let hp = await hash(pass.value);
+
+if(hp===user.pass){
+currentUser=user.user;
+welcome.innerText="Welcome "+currentUser;
+show("dash");
+drawChart();
+toast("Login success");
+}else{
+toast("Wrong password");
+}
+}
+
+// ===== LOGOUT =====
+function logout(){
+currentUser=null;
+show("login");
+}
+
+// ===== STUDENTS =====
+function getStudents(){
+return JSON.parse(localStorage.getItem("students")||"[]");
+}
+
+function saveStudents(d){
+localStorage.setItem("students",JSON.stringify(d));
+render();
+drawChart();
+}
+
+function addStudent(){
+let d=getStudents();
+
+if(!sname.value||!semail.value)
+return toast("Fill required");
+
+d.push({
+name:sname.value,
+email:semail.value,
+course:scourse.value
+});
+
+saveStudents(d);
+
+sname.value="";
+semail.value="";
+scourse.value="";
+}
+
+function render(){
+let q=search.value?.toLowerCase()||"";
+let d=getStudents();
+
+list.innerHTML=d
+.filter(s=>s.name.toLowerCase().includes(q))
+.map(s=>`
+<div class="card">
+<b>${s.name}</b><br>
+${s.email}<br>
+${s.course}
+</div>
+`).join("");
+}
+
+search.oninput=render;
+
+// ===== DARK MODE =====
+function toggleDark(){
+document.body.classList.toggle("dark");
+}
+
+// ===== CHART =====
+let chart;
+
+function drawChart(){
+let d=getStudents();
+
+let count = d.length;
+
+if(chart) chart.destroy();
+
+chart = new Chart(document.getElementById("chart"),{
+type:"bar",
+data:{
+labels:["Students"],
+datasets:[{
+label:"Total Students",
+data:[count],
+backgroundColor:"#007bff"
+}]
+}
+});
+}
+
+// INIT
+show("login");
+render();
+
+</script>
+
+</body>
+</html>

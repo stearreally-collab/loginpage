@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registration & Login App</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#f4f4f4;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+.container{
+    background:white;
+    width:350px;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,0.2);
+}
+
+input{
+    width:100%;
+    padding:10px;
+    margin:8px 0;
+    border:1px solid #ccc;
+    border-radius:5px;
+    box-sizing:border-box;
+}
+
+button{
+    width:100%;
+    padding:10px;
+    background:#007bff;
+    color:white;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#0056b3;
+}
+
+#message{
+    margin-top:10px;
+    text-align:center;
+    font-weight:bold;
+}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<h2>Create Account</h2>
+
+<input type="text" id="username" placeholder="Username">
+
+<input type="email" id="email" placeholder="Email">
+
+<input type="password" id="password" placeholder="Create Password">
+
+<input type="password" id="confirmPassword" placeholder="Confirm Password">
+
+<button id="registerBtn">Register</button>
+
+<hr>
+
+<h2>Login</h2>
+
+<input type="email" id="loginEmail" placeholder="Email">
+
+<input type="password" id="loginPassword" placeholder="Password">
+
+<button id="loginBtn">Login</button>
+
+<p id="message"></p>
+
+</div>
+
+<script>
+
+// DOM Elements
+const registerBtn = document.getElementById("registerBtn");
+const loginBtn = document.getElementById("loginBtn");
+const passwordField = document.getElementById("password");
+const message = document.getElementById("message");
+
+// Event Listeners
+registerBtn.addEventListener("click", registerUser);
+loginBtn.addEventListener("click", loginUser);
+passwordField.addEventListener("keyup", validatePassword);
+
+// Password Strength Validation
+function validatePassword(){
+
+    let password = passwordField.value;
+
+    if(password.length < 6){
+
+        message.style.color = "orange";
+        message.innerHTML =
+        "Password must be at least 6 characters";
+
+    }else{
+
+        message.style.color = "green";
+        message.innerHTML =
+        "Strong Password";
+    }
+}
+
+// Register Function
+function registerUser(){
+
+    let username =
+    document.getElementById("username").value;
+
+    let email =
+    document.getElementById("email").value;
+
+    let password =
+    document.getElementById("password").value;
+
+    let confirmPassword =
+    document.getElementById("confirmPassword").value;
+
+    // Email Validation
+    let emailPattern =
+    /^[^ ]+@[^ ]+\.[a-z]{2,3}$/;
+
+    if(username === ""){
+
+        showMessage("Enter Username","red");
+        return;
+    }
+
+    if(!email.match(emailPattern)){
+
+        showMessage("Invalid Email","red");
+        return;
+    }
+
+    if(password.length < 6){
+
+        showMessage(
+        "Password must be 6+ characters",
+        "red");
+        return;
+    }
+
+    if(password !== confirmPassword){
+
+        showMessage(
+        "Passwords do not match",
+        "red");
+        return;
+    }
+
+    localStorage.setItem(
+        "username",
+        username
+    );
+
+    localStorage.setItem(
+        "email",
+        email
+    );
+
+    localStorage.setItem(
+        "password",
+        password
+    );
+
+    showMessage(
+        "Registration Successful",
+        "green"
+    );
+}
+
+// Login Function
+function loginUser(){
+
+    let email =
+    document.getElementById("loginEmail").value;
+
+    let password =
+    document.getElementById("loginPassword").value;
+
+    let storedEmail =
+    localStorage.getItem("email");
+
+    let storedPassword =
+    localStorage.getItem("password");
+
+    if(
+        email === storedEmail &&
+        password === storedPassword
+    ){
+
+        showMessage(
+            "Login Successful",
+            "green"
+        );
+
+    }else{
+
+        showMessage(
+            "Invalid Login Details",
+            "red"
+        );
+    }
+}
+
+// Reusable Function
+function showMessage(text,color){
+
+    message.innerHTML = text;
+    message.style.color = color;
+}
+
+// Window Load Event
+window.addEventListener("load", function(){
+
+    console.log(
+        "Application Loaded Successfully"
+    );
+
+});
+
+</script>
+
+</body>
+</html>

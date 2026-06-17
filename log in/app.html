@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Local Login App</title>
+
+<style>
+    body{
+        font-family: Arial, sans-serif;
+        background:#f4f4f4;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        height:100vh;
+        margin:0;
+    }
+
+    .container{
+        background:white;
+        padding:20px;
+        width:320px;
+        border-radius:10px;
+        box-shadow:0 0 10px rgba(0,0,0,0.2);
+    }
+
+    h2{
+        text-align:center;
+    }
+
+    input{
+        width:100%;
+        padding:10px;
+        margin:8px 0;
+        border:1px solid #ccc;
+        border-radius:5px;
+        box-sizing:border-box;
+    }
+
+    button{
+        width:100%;
+        padding:10px;
+        background:#007bff;
+        color:white;
+        border:none;
+        border-radius:5px;
+        cursor:pointer;
+        margin-top:5px;
+    }
+
+    button:hover{
+        background:#0056b3;
+    }
+
+    #message{
+        text-align:center;
+        margin-top:10px;
+        font-weight:bold;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <h2>Create Account</h2>
+
+    <input type="text" id="regUsername" placeholder="Username">
+
+    <input type="password" id="regPassword" placeholder="Password">
+
+    <input type="password" id="regConfirmPassword" placeholder="Confirm Password">
+
+    <button onclick="register()">Register</button>
+
+    <hr>
+
+    <h2>Login</h2>
+
+    <input type="text" id="loginUsername" placeholder="Username">
+
+    <input type="password" id="loginPassword" placeholder="Password">
+
+    <button onclick="login()">Login</button>
+
+    <p id="message"></p>
+
+</div>
+
+<script>
+
+function register() {
+
+    let username = document.getElementById("regUsername").value;
+    let password = document.getElementById("regPassword").value;
+    let confirmPassword = document.getElementById("regConfirmPassword").value;
+    let message = document.getElementById("message");
+
+    if(username === ""){
+        message.style.color = "red";
+        message.innerHTML = "Enter a username";
+        return;
+    }
+
+    if(password.length < 6){
+        message.style.color = "red";
+        message.innerHTML = "Password must be at least 6 characters";
+        return;
+    }
+
+    if(password !== confirmPassword){
+        message.style.color = "red";
+        message.innerHTML = "Passwords do not match";
+        return;
+    }
+
+    localStorage.setItem("username", username);
+    localStorage.setItem("password", password);
+
+    message.style.color = "green";
+    message.innerHTML = "Account created successfully!";
+}
+
+function login(){
+
+    let username = document.getElementById("loginUsername").value;
+    let password = document.getElementById("loginPassword").value;
+
+    let savedUsername = localStorage.getItem("username");
+    let savedPassword = localStorage.getItem("password");
+
+    let message = document.getElementById("message");
+
+    if(username === savedUsername && password === savedPassword){
+        message.style.color = "green";
+        message.innerHTML = "Login Successful!";
+    } else {
+        message.style.color = "red";
+        message.innerHTML = "Invalid Username or Password";
+    }
+}
+
+</script>
+
+</body>
+</html>

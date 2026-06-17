@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upgraded Student App</title>
+
+<style>
+body{
+    font-family: Arial;
+    margin:0;
+    background:#eef2f7;
+}
+
+.container{
+    max-width:520px;
+    margin:auto;
+    background:white;
+    padding:15px;
+    margin-top:20px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,0.2);
+}
+
+input,button{
+    width:100%;
+    padding:10px;
+    margin:6px 0;
+}
+
+button{
+    background:#007bff;
+    color:white;
+    border:none;
+    cursor:pointer;
+}
+
+button:hover{ background:#0056b3; }
+
+.hidden{ display:none; }
+
+.card{
+    background:#f1f1f1;
+    padding:10px;
+    margin:5px 0;
+    border-radius:6px;
+}
+
+.nav button{
+    width:49%;
+}
+
+.small{
+    font-size:14px;
+    color:#555;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- LOGIN -->
+<div id="loginPage">
+<h2>Login</h2>
+<input id="loginEmail" placeholder="Email">
+<input id="loginPass" type="password" placeholder="Password">
+<button id="loginBtn">Login</button>
+<button id="goRegister">Create Account</button>
+<p id="msg"></p>
+</div>
+
+<!-- REGISTER -->
+<div id="registerPage" class="hidden">
+<h2>Register</h2>
+<input id="rUser" placeholder="Username">
+<input id="rEmail" placeholder="Email">
+<input id="rPass" type="password" placeholder="Password">
+<input id="rConfirm" type="password" placeholder="Confirm Password">
+<button id="regBtn">Register</button>
+<button id="backLogin">Back</button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="hidden">
+<h2>Dashboard</h2>
+<p id="welcome"></p>
+<p class="small" id="stats"></p>
+
+<div class="nav">
+<button id="goStudents">Students</button>
+<button id="goAPI">API</button>
+</div>
+
+<button id="logout">Logout</button>
+</div>
+
+<!-- STUDENTS -->
+<div id="studentsPage" class="hidden">
+<h2>Students</h2>
+
+<input id="sid" placeholder="ID">
+<input id="sname" placeholder="Name">
+<input id="semail" placeholder="Email">
+<input id="scourse" placeholder="Course">
+
+<button id="saveStudent">Save Student</button>
+<input id="search" placeholder="Search student">
+
+<button id="backDash1">Back</button>
+
+<div id="list"></div>
+</div>
+
+<!-- API -->
+<div id="apiPage" class="hidden">
+<h2>API Users</h2>
+<button id="loadAPI">Load API</button>
+<button id="backDash2">Back</button>
+<div id="apiList"></div>
+</div>
+
+</div>
+
+<script>
+
+// ================= NAV =================
+const pages = {
+login: loginPage,
+register: registerPage,
+dashboard: dashboard,
+students: studentsPage,
+api: apiPage
+};
+
+function show(p){
+Object.values(pages).forEach(x=>x.classList.add("hidden"));
+pages[p].classList.remove("hidden");
+}
+
+// ================= HASH PASSWORD =================
+async function hash(text){
+const enc = new TextEncoder().encode(text);
+const buf = await crypto.subtle.digest("SHA-256", enc);
+return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+
+// ================= REGISTER =================
+regBtn.onclick = async ()=>{
+let u = rUser.value;
+let e = rEmail.value;
+let p = rPass.value;
+let c = rConfirm.value;
+
+if(!u||!e||!p) return alert("Fill all fields");
+if(p !== c) return alert("Passwords not match");
+
+let users = JSON.parse(localStorage.getItem("users")||"[]");
+
+if(users.find(x=>x.email===e))
+return alert("Email exists");
+
+users.push({
+user:u,
+email:e,
+pass: await hash(p)
+});
+
+localStorage.setItem("users",JSON.stringify(users));
+alert("Registered!");
+show("login");
+};
+
+// ================= LOGIN =================
+loginBtn.onclick = async ()=>{
+let e = loginEmail.value;
+let p = loginPass.value;
+
+let users = JSON.parse(localStorage.getItem("users")||"[]");
+let found = users.find(u=>u.email===e);
+
+if(!found) return alert("User not found");
+
+let hp = await hash(p);
+
+if(hp === found.pass){
+localStorage.setItem("session",found.user);
+welcome.innerText = "Welcome " + found.user;
+updateStats();
+show("dashboard");
+}else{
+alert("Wrong password");
+}
+};
+
+// ================= LOGOUT =================
+logout.onclick = ()=>{
+localStorage.removeItem("session");
+show("login");
+};
+
+// ================= STUDENTS =================
+let editIndex = null;
+
+function getStudents(){
+return JSON.parse(localStorage.getItem("students")||"[]");
+}
+
+function saveStudents(data){
+localStorage.setItem("students",JSON.stringify(data));
+render();
+updateStats();
+}
+
+function render(){
+let data = getStudents();
+let q = search.value?.toLowerCase() || "";
+
+list.innerHTML = data
+.filter(s=>s.name.toLowerCase().includes(q))
+.map((s,i)=>`
+<div class="card">
+<b>${s.name}</b><br>
+${s.email}<br>
+${s.course}<br>
+
+<button onclick="edit(${i})">Edit</button>
+<button onclick="del(${i})">Delete</button>
+</div>
+`).join("");
+}
+
+saveStudent.onclick = ()=>{
+let data = getStudents();
+
+if(!sname.value || !semail.value)
+return alert("Fill required");
+
+if(editIndex===null){
+data.push({
+id:Date.now(),
+name:sname.value,
+email:semail.value,
+course:scourse.value
+});
+}else{
+data[editIndex].name = sname.value;
+data[editIndex].email = semail.value;
+data[editIndex].course = scourse.value;
+editIndex=null;
+}
+
+saveStudents(data);
+
+sid.value="";
+sname.value="";
+semail.value="";
+scourse.value="";
+};
+
+function edit(i){
+let s = getStudents()[i];
+sid.value=s.id;
+sname.value=s.name;
+semail.value=s.email;
+scourse.value=s.course;
+editIndex=i;
+}
+
+function del(i){
+let d = getStudents();
+d.splice(i,1);
+saveStudents(d);
+}
+
+// ================= API =================
+loadAPI.onclick = async ()=>{
+try{
+apiList.innerHTML="Loading...";
+
+let res = await fetch("https://jsonplaceholder.typicode.com/users");
+let data = await res.json();
+
+apiList.innerHTML = data.map(u=>`
+<div class="card">
+<b>${u.name}</b><br>
+${u.email}
+</div>
+`).join("");
+
+}catch(e){
+apiList.innerHTML="API Error";
+}
+};
+
+// ================= STATS =================
+function updateStats(){
+let students = getStudents();
+stats.innerText =
+`Students: ${students.length}`;
+}
+
+// ================= SEARCH =================
+search.oninput = render;
+
+// ================= NAV EVENTS =================
+goRegister.onclick = ()=>show("register");
+backLogin.onclick = ()=>show("login");
+
+goStudents.onclick = ()=>{ show("students"); render(); };
+goAPI.onclick = ()=>show("api");
+
+backDash1.onclick = ()=>show("dashboard");
+backDash2.onclick = ()=>show("dashboard");
+
+// ================= INIT =================
+show("login");
+render();
+updateStats();
+
+</script>
+
+</body>
+</html>
